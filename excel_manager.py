@@ -30,6 +30,16 @@ COLUMNS = [
     "招聘状态"
 ]
 
+# 除序号外，所有列都应为字符串类型
+_STR_DTYPE = {col: str for col in COLUMNS if col != "序号"}
+
+
+def _read_excel() -> pd.DataFrame:
+    """统一读取Excel，确保字符串列不会被推断为float64"""
+    df = pd.read_excel(EXCEL_FILE, engine='openpyxl', dtype=_STR_DTYPE)
+    df['序号'] = pd.to_numeric(df['序号'], errors='coerce').astype('Int64')
+    return df
+
 
 def init_excel():
     """初始化Excel文件，创建表头；如果已存在则迁移列结构"""
@@ -46,7 +56,7 @@ def init_excel():
         print(f"Excel文件已创建: {EXCEL_FILE}")
     else:
         # 检查已有文件的列是否需要迁移
-        df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+        df = _read_excel()
         existing_cols = list(df.columns)
         need_save = False
 
@@ -113,7 +123,7 @@ def get_all_candidates() -> List[Dict[str, Any]]:
     if not os.path.exists(EXCEL_FILE):
         init_excel()
 
-    df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+    df = _read_excel()
     df = df.fillna('')  # 将NaN转换为空字符串
     return df.to_dict('records')
 
@@ -124,7 +134,7 @@ def add_candidate(candidate_data: Dict[str, Any]) -> Dict[str, Any]:
         init_excel()
 
     # 读取现有数据
-    df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+    df = _read_excel()
 
     # 生成新序号
     if len(df) > 0:
@@ -166,7 +176,7 @@ def update_candidate(candidate_id: int, update_data: Dict[str, Any]) -> Optional
     if not os.path.exists(EXCEL_FILE):
         return None
 
-    df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+    df = _read_excel()
 
     # 查找记录
     idx = df[df['序号'] == candidate_id].index
@@ -192,7 +202,7 @@ def delete_candidate(candidate_id: int) -> bool:
     if not os.path.exists(EXCEL_FILE):
         return False
 
-    df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+    df = _read_excel()
 
     # 查找并删除记录
     idx = df[df['序号'] == candidate_id].index
@@ -213,7 +223,7 @@ def get_candidate(candidate_id: int) -> Optional[Dict[str, Any]]:
     if not os.path.exists(EXCEL_FILE):
         return None
 
-    df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+    df = _read_excel()
     df = df.fillna('')
 
     result = df[df['序号'] == candidate_id]
