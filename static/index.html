@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简历管理Agent</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 简历管理Agent</h1>
+            <p class="subtitle">上传简历 · AI自动分析 · 面试管理</p>
+        </header>
+
+        <main>
+            <!-- 上传区域 -->
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📤</div>
+                    <h3>上传简历</h3>
+                    <p>拖拽文件到此处，或点击选择文件</p>
+                    <p class="upload-hint">支持 PDF、DOCX、TXT 格式 | 上传后自动AI分析</p>
+                    <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt" hidden>
+                    <div class="upload-options">
+                        <select id="uploader" class="uploader-select">
+                            <option value="">选择上传人...</option>
+                        </select>
+                        <button class="btn btn-primary" id="uploadBtn">选择文件</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 统计信息 -->
+            <section class="stats-section" id="statsSection">
+                <div class="stat-card">
+                    <span class="stat-value" id="totalCandidates">-</span>
+                    <span class="stat-label">总应聘者</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="androidCount">-</span>
+                    <span class="stat-label">Android</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="linuxCount">-</span>
+                    <span class="stat-label">Linux</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="qnxCount">-</span>
+                    <span class="stat-label">QNX</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="canInterviewCount">-</span>
+                    <span class="stat-label">可约面</span>
+                </div>
+            </section>
+
+            <!-- 简历列表 -->
+            <section class="list-section">
+                <div class="list-header">
+                    <h2>应聘者列表</h2>
+                    <button class="btn btn-secondary" id="refreshBtn">🔄 刷新</button>
+                </div>
+                <div class="table-container">
+                    <table class="candidates-table" id="candidatesTable">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>姓名</th>
+                                <th>简历附件</th>
+                                <th>方向</th>
+                                <th>上传日期</th>
+                                <th>上传人</th>
+                                <th>工作base</th>
+                                <th>可约面</th>
+                                <th>约面负责人</th>
+                                <th>初面时间</th>
+                                <th>面试官</th>
+                                <th>初面评价</th>
+                                <th>初面结论</th>
+                                <th>招聘状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidatesBody">
+                            <tr>
+                                <td colspan="15" class="loading">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>简历管理Agent v1.0 | AI自动分析 · 智能管理</p>
+        </footer>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑应聘者信息</h3>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <form class="modal-body" id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label>姓名</label>
+                    <input type="text" id="editName" placeholder="应聘者姓名">
+                </div>
+                <div class="form-group">
+                    <label>方向</label>
+                    <select id="editDirection">
+                        <option value="Android">Android</option>
+                        <option value="Linux">Linux</option>
+                        <option value="QNX">QNX</option>
+                        <option value="未确定">未确定</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>工作base</label>
+                    <select id="editWorkBase">
+                        <option value="">请选择</option>
+                        <option value="北京">北京</option>
+                        <option value="上海">上海</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>是否可以约面</label>
+                    <select id="editCanInterview">
+                        <option value="">请选择</option>
+                        <option value="是">是</option>
+                        <option value="否">否</option>
+                        <option value="待定">待定</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>约面负责人</label>
+                    <input type="text" id="editInterviewOwner" placeholder="负责人姓名">
+                </div>
+                <div class="form-group">
+                    <label>初面时间</label>
+                    <input type="datetime-local" id="editInterviewDate">
+                </div>
+                <div class="form-group">
+                    <label>面试官</label>
+                    <input type="text" id="editInterviewer" placeholder="面试官姓名">
+                </div>
+                <div class="form-group">
+                    <label>初面评价</label>
+                    <textarea id="editFirstInterviewReview" placeholder="初面评价" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>初面结论</label>
+                    <input type="text" id="editFirstInterviewConclusion" placeholder="初面结论">
+                </div>
+                <div class="form-group">
+                    <label>招聘状态</label>
+                    <input type="text" id="editRecruitmentStatus" placeholder="招聘状态">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelEdit">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 上传结果提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

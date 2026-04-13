@@ -1,0 +1,19 @@
+# 密钥
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+
+# 用户数据（含隐私）
+data/candidates.xlsx
+resumes/
+
+# 临时文件
+upload_result.*
+*.tar.gz
+*.zip

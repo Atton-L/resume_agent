@@ -1,0 +1,395 @@
+// 简历管理Agent - 前端逻辑
+
+// API 基础路径
+const API_BASE = '/api';
+
+// DOM 元素
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const uploaderSelect = document.getElementById('uploader');
+const candidatesBody = document.getElementById('candidatesBody');
+const refreshBtn = document.getElementById('refreshBtn');
+const editModal = document.getElementById('editModal');
+const editForm = document.getElementById('editForm');
+const closeModalBtn = document.getElementById('closeModal');
+const cancelEditBtn = document.getElementById('cancelEdit');
+const toast = document.getElementById('toast');
+
+// 用户列表
+let users = [];
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    loadUsers();
+    loadCandidates();
+    loadStats();
+    setupEventListeners();
+    // 恢复上次选择的上传人
+    const lastUploader = localStorage.getItem('lastUploader');
+    if (lastUploader) {
+        setTimeout(() => {
+            uploaderSelect.value = lastUploader;
+        }, 300);
+    }
+});
+
+// 设置事件监听
+function setupEventListeners() {
+    // 上传区域点击
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target === uploadArea || e.target.classList.contains('upload-icon') ||
+            e.target.tagName === 'H3' || e.target.tagName === 'P') {
+            fileInput.click();
+        }
+    });
+
+    // 上传按钮
+    uploadBtn.addEventListener('click', () => fileInput.click());
+
+    // 文件选择
+    fileInput.addEventListener('change', handleFileSelect);
+
+    // 拖拽上传
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileUpload(files[0]);
+        }
+    });
+
+    // 刷新按钮
+    refreshBtn.addEventListener('click', () => {
+        loadCandidates();
+        loadStats();
+    });
+
+    // 编辑模态框关闭
+    closeModalBtn.addEventListener('click', closeEditModal);
+    cancelEditBtn.addEventListener('click', closeEditModal);
+
+    // 点击模态框外部关闭
+    editModal.addEventListener('click', (e) => {
+        if (e.target === editModal) {
+            closeEditModal();
+        }
+    });
+
+    // 表单提交
+    editForm.addEventListener('submit', handleEditSubmit);
+
+    // 保存选择的上传人
+    uploaderSelect.addEventListener('change', () => {
+        if (uploaderSelect.value) {
+            localStorage.setItem('lastUploader', uploaderSelect.value);
+        }
+    });
+}
+
+// 加载用户列表
+async function loadUsers() {
+    try {
+        const response = await fetch(`${API_BASE}/users`);
+        const data = await response.json();
+        users = data.users || [];
+
+        // 填充下拉框
+        uploaderSelect.innerHTML = '<option value="">选择上传人...</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user;
+            option.textContent = user;
+            uploaderSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('加载用户列表失败:', error);
+    }
+}
+
+// 处理文件选择
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+        handleFileUpload(file);
+    }
+}
+
+// 处理文件上传
+async function handleFileUpload(file) {
+    const uploader = uploaderSelect.value || '系统';
+
+    if (uploaderSelect.value === '') {
+        showToast('请选择上传人', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('uploader', uploader);
+
+    showToast('正在上传并AI分析简历...', 'info');
+
+    try {
+        const response = await fetch(`${API_BASE}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast(`简历上传成功！AI分析完成，${result.message}`, 'success');
+            loadCandidates();
+            loadStats();
+        } else {
+            showToast(result.message || '上传失败', 'error');
+        }
+    } catch (error) {
+        showToast('上传失败：' + error.message, 'error');
+    }
+
+    // 清空文件选择
+    fileInput.value = '';
+}
+
+// 加载应聘者列表
+async function loadCandidates() {
+    candidatesBody.innerHTML = '<tr><td colspan="15" class="loading">加载中...</td></tr>';
+
+    try {
+        const response = await fetch(`${API_BASE}/candidates`);
+        const candidates = await response.json();
+
+        if (candidates.length === 0) {
+            candidatesBody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:#666;padding:40px;">暂无应聘者数据</td></tr>';
+            return;
+        }
+
+        candidatesBody.innerHTML = candidates.map(c => {
+            const fileExt = getFileExtension(c.resume_file);
+            const canPreview = fileExt === '.pdf';
+
+            return `
+            <tr>
+                <td>${c.id}</td>
+                <td><strong>${escapeHtml(c.name)}</strong></td>
+                <td>
+                    <div class="resume-actions">
+                        <span class="resume-filename">${escapeHtml(c.resume_file)}</span>
+                        <div class="resume-buttons">
+                            ${canPreview ? `<button class="btn-link btn-preview" onclick="previewResume(${c.id})" title="预览">👁️</button>` : ''}
+                            <button class="btn-link btn-download" onclick="downloadResume(${c.id})" title="下载">📥</button>
+                        </div>
+                    </div>
+                </td>
+                <td>${getDirectionBadge(c.direction)}</td>
+                <td>${c.upload_date}</td>
+                <td>${escapeHtml(c.uploader)}</td>
+                <td>${escapeHtml(c.work_base || '-')}</td>
+                <td>${getInterviewStatus(c.can_interview)}</td>
+                <td>${escapeHtml(c.interview_owner || '-')}</td>
+                <td>${escapeHtml(c.interview_date || '-')}</td>
+                <td>${escapeHtml(c.interviewer || '-')}</td>
+                <td>${escapeHtml(c.first_interview_review || '-')}</td>
+                <td>${escapeHtml(c.first_interview_conclusion || '-')}</td>
+                <td>${escapeHtml(c.recruitment_status || '-')}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-secondary" onclick="openEditModal(${c.id})">编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCandidate(${c.id})">删除</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }).join('');
+
+    } catch (error) {
+        candidatesBody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:#C00000;">加载失败：' + error.message + '</td></tr>';
+    }
+}
+
+// 加载统计信息
+async function loadStats() {
+    try {
+        const response = await fetch(`${API_BASE}/stats`);
+        const stats = await response.json();
+
+        document.getElementById('totalCandidates').textContent = stats.total;
+        document.getElementById('androidCount').textContent = stats.by_direction.Android;
+        document.getElementById('linuxCount').textContent = stats.by_direction.Linux;
+        document.getElementById('qnxCount').textContent = stats.by_direction.QNX;
+        document.getElementById('canInterviewCount').textContent = stats.can_interview;
+
+    } catch (error) {
+        console.error('加载统计信息失败:', error);
+    }
+}
+
+// 获取文件扩展名
+function getFileExtension(filename) {
+    const idx = filename.lastIndexOf('.');
+    return idx >= 0 ? filename.slice(idx).toLowerCase() : '';
+}
+
+// 预览简历
+function previewResume(id) {
+    const previewUrl = `${API_BASE}/preview/resume/${id}`;
+    window.open(previewUrl, '_blank', 'width=900,height=700');
+}
+
+// 下载简历
+function downloadResume(id) {
+    window.location.href = `${API_BASE}/download/resume/${id}`;
+}
+
+// 获取方向标签
+function getDirectionBadge(direction) {
+    const className = {
+        'Android': 'direction-android',
+        'Linux': 'direction-linux',
+        'QNX': 'direction-qnx'
+    }[direction] || 'direction-unknown';
+
+    return `<span class="direction-badge ${className}">${escapeHtml(direction || '未确定')}</span>`;
+}
+
+// 获取面试状态
+function getInterviewStatus(status) {
+    if (!status) return '-';
+    if (status === '是') return '<span style="color:#70AD47;">是</span>';
+    if (status === '否') return '<span style="color:#C00000;">否</span>';
+    return `<span style="color:#FFC000;">${escapeHtml(status)}</span>`;
+}
+
+// 打开编辑模态框
+async function openEditModal(id) {
+    try {
+        const response = await fetch(`${API_BASE}/candidates/${id}`);
+        const candidate = await response.json();
+
+        document.getElementById('editId').value = candidate.id;
+        document.getElementById('editName').value = candidate.name;
+        document.getElementById('editDirection').value = candidate.direction;
+        document.getElementById('editWorkBase').value = candidate.work_base || '';
+        document.getElementById('editCanInterview').value = candidate.can_interview || '';
+        document.getElementById('editInterviewOwner').value = candidate.interview_owner || '';
+        document.getElementById('editInterviewer').value = candidate.interviewer || '';
+        document.getElementById('editFirstInterviewReview').value = candidate.first_interview_review || '';
+        document.getElementById('editFirstInterviewConclusion').value = candidate.first_interview_conclusion || '';
+        document.getElementById('editRecruitmentStatus').value = candidate.recruitment_status || '';
+
+        // 处理日期时间格式
+        if (candidate.interview_date) {
+            const date = new Date(candidate.interview_date);
+            document.getElementById('editInterviewDate').value = date.toISOString().slice(0, 16);
+        }
+
+        editModal.classList.add('active');
+
+    } catch (error) {
+        showToast('获取应聘者信息失败：' + error.message, 'error');
+    }
+}
+
+// 关闭编辑模态框
+function closeEditModal() {
+    editModal.classList.remove('active');
+    editForm.reset();
+}
+
+// 处理编辑提交
+async function handleEditSubmit(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('editId').value;
+    const updateData = {
+        name: document.getElementById('editName').value,
+        direction: document.getElementById('editDirection').value,
+        work_base: document.getElementById('editWorkBase').value,
+        can_interview: document.getElementById('editCanInterview').value,
+        interview_owner: document.getElementById('editInterviewOwner').value,
+        interviewer: document.getElementById('editInterviewer').value,
+        first_interview_review: document.getElementById('editFirstInterviewReview').value,
+        first_interview_conclusion: document.getElementById('editFirstInterviewConclusion').value,
+        recruitment_status: document.getElementById('editRecruitmentStatus').value
+    };
+
+    const interviewDate = document.getElementById('editInterviewDate').value;
+    if (interviewDate) {
+        updateData.interview_date = new Date(interviewDate).toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/candidates/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+        });
+
+        if (response.ok) {
+            showToast('更新成功', 'success');
+            closeEditModal();
+            loadCandidates();
+            loadStats();
+        } else {
+            const error = await response.json();
+            showToast(error.detail || '更新失败', 'error');
+        }
+    } catch (error) {
+        showToast('更新失败：' + error.message, 'error');
+    }
+}
+
+// 删除应聘者
+async function deleteCandidate(id) {
+    if (!confirm('确定要删除这位应聘者吗？此操作不可恢复。')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/candidates/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showToast('删除成功', 'success');
+            loadCandidates();
+            loadStats();
+        } else {
+            showToast('删除失败', 'error');
+        }
+    } catch (error) {
+        showToast('删除失败：' + error.message, 'error');
+    }
+}
+
+// 显示提示消息
+function showToast(message, type = 'info') {
+    toast.textContent = message;
+    toast.className = `toast ${type} show`;
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// HTML转义
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
