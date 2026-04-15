@@ -183,6 +183,8 @@ async def get_candidates():
                 interviewer=c.get('面试官', ''),
                 first_interview_review=str(c.get('初面评价', '') or ''),
                 first_interview_conclusion=str(c.get('初面结论', '') or ''),
+                second_interview_date=str(c.get('复面时间', '') or ''),
+                second_interview_conclusion=str(c.get('复面结论', '') or ''),
                 recruitment_status=str(c.get('招聘状态', '') or '')
             ))
 
@@ -215,6 +217,8 @@ async def get_candidate(candidate_id: int):
             interviewer=candidate.get('面试官', ''),
             first_interview_review=str(candidate.get('初面评价', '') or ''),
             first_interview_conclusion=str(candidate.get('初面结论', '') or ''),
+            second_interview_date=str(candidate.get('复面时间', '') or ''),
+            second_interview_conclusion=str(candidate.get('复面结论', '') or ''),
             recruitment_status=str(candidate.get('招聘状态', '') or '')
         )
 
@@ -248,6 +252,10 @@ async def update_candidate(candidate_id: int, update_data: CandidateUpdate):
             update_dict['初面评价'] = update_data.first_interview_review
         if update_data.first_interview_conclusion is not None:
             update_dict['初面结论'] = update_data.first_interview_conclusion
+        if update_data.second_interview_date is not None:
+            update_dict['复面时间'] = update_data.second_interview_date
+        if update_data.second_interview_conclusion is not None:
+            update_dict['复面结论'] = update_data.second_interview_conclusion
         if update_data.recruitment_status is not None:
             update_dict['招聘状态'] = update_data.recruitment_status
 
@@ -273,6 +281,8 @@ async def update_candidate(candidate_id: int, update_data: CandidateUpdate):
             interviewer=result.get('面试官', ''),
             first_interview_review=result.get('初面评价', ''),
             first_interview_conclusion=result.get('初面结论', ''),
+            second_interview_date=result.get('复面时间', ''),
+            second_interview_conclusion=result.get('复面结论', ''),
             recruitment_status=result.get('招聘状态', '')
         )
 

@@ -165,14 +165,14 @@ async function handleFileUpload(file) {
 
 // 加载应聘者列表
 async function loadCandidates() {
-    candidatesBody.innerHTML = '<tr><td colspan="15" class="loading">加载中...</td></tr>';
+    candidatesBody.innerHTML = '<tr><td colspan="17" class="loading">加载中...</td></tr>';
 
     try {
         const response = await fetch(`${API_BASE}/candidates`);
         const candidates = await response.json();
 
         if (candidates.length === 0) {
-            candidatesBody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:#666;padding:40px;">暂无应聘者数据</td></tr>';
+            candidatesBody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:#666;padding:40px;">暂无应聘者数据</td></tr>';
             return;
         }
 
@@ -203,6 +203,8 @@ async function loadCandidates() {
                 <td>${escapeHtml(c.interviewer || '-')}</td>
                 <td>${escapeHtml(c.first_interview_review || '-')}</td>
                 <td>${escapeHtml(c.first_interview_conclusion || '-')}</td>
+                <td>${escapeHtml(c.second_interview_date || '-')}</td>
+                <td>${escapeHtml(c.second_interview_conclusion || '-')}</td>
                 <td>${escapeHtml(c.recruitment_status || '-')}</td>
                 <td>
                     <div class="action-buttons">
@@ -215,7 +217,7 @@ async function loadCandidates() {
         }).join('');
 
     } catch (error) {
-        candidatesBody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:#C00000;">加载失败：' + error.message + '</td></tr>';
+        candidatesBody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:#C00000;">加载失败：' + error.message + '</td></tr>';
     }
 }
 
@@ -287,12 +289,17 @@ async function openEditModal(id) {
         document.getElementById('editInterviewer').value = candidate.interviewer || '';
         document.getElementById('editFirstInterviewReview').value = candidate.first_interview_review || '';
         document.getElementById('editFirstInterviewConclusion').value = candidate.first_interview_conclusion || '';
+        document.getElementById('editSecondInterviewConclusion').value = candidate.second_interview_conclusion || '';
         document.getElementById('editRecruitmentStatus').value = candidate.recruitment_status || '';
 
         // 处理日期时间格式
         if (candidate.interview_date) {
             const date = new Date(candidate.interview_date);
             document.getElementById('editInterviewDate').value = date.toISOString().slice(0, 16);
+        }
+        if (candidate.second_interview_date) {
+            const secondDate = new Date(candidate.second_interview_date);
+            document.getElementById('editSecondInterviewDate').value = secondDate.toISOString().slice(0, 16);
         }
 
         editModal.classList.add('active');
@@ -322,12 +329,17 @@ async function handleEditSubmit(e) {
         interviewer: document.getElementById('editInterviewer').value,
         first_interview_review: document.getElementById('editFirstInterviewReview').value,
         first_interview_conclusion: document.getElementById('editFirstInterviewConclusion').value,
+        second_interview_conclusion: document.getElementById('editSecondInterviewConclusion').value,
         recruitment_status: document.getElementById('editRecruitmentStatus').value
     };
 
     const interviewDate = document.getElementById('editInterviewDate').value;
     if (interviewDate) {
         updateData.interview_date = new Date(interviewDate).toISOString().slice(0, 19).replace('T', ' ');
+    }
+    const secondInterviewDate = document.getElementById('editSecondInterviewDate').value;
+    if (secondInterviewDate) {
+        updateData.second_interview_date = new Date(secondInterviewDate).toISOString().slice(0, 19).replace('T', ' ');
     }
 
     try {

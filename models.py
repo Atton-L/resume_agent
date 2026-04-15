@@ -84,6 +84,8 @@ class CandidateUpdate(BaseModel):
     interviewer: Optional[str] = None
     first_interview_review: Optional[str] = None
     first_interview_conclusion: Optional[str] = None
+    second_interview_date: Optional[str] = None
+    second_interview_conclusion: Optional[str] = None
     recruitment_status: Optional[str] = None
 
 
@@ -98,6 +100,8 @@ class CandidateResponse(CandidateBase):
     interviewer: str = Field(default="", description="面试官")
     first_interview_review: str = Field(default="", description="初面评价")
     first_interview_conclusion: str = Field(default="", description="初面结论")
+    second_interview_date: str = Field(default="", description="复面时间")
+    second_interview_conclusion: str = Field(default="", description="复面结论")
     recruitment_status: str = Field(default="", description="招聘状态")
 
     class Config:

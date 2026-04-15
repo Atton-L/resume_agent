@@ -27,6 +27,8 @@ COLUMNS = [
     "面试官",
     "初面评价",
     "初面结论",
+    "复面时间",
+    "复面结论",
     "招聘状态"
 ]
 
@@ -96,20 +98,22 @@ def _format_excel():
 
     # 设置列宽
     column_widths = {
-        'A': 8,   # 序号
-        'B': 12,  # 姓名
-        'C': 30,  # 简历附件
-        'D': 10,  # 方向
-        'E': 12,  # 简历上传日期
-        'F': 10,  # 上传人
-        'G': 10,  # 工作base
-        'H': 12,  # 是否可以约面
-        'I': 12,  # 约面负责人
-        'J': 16,  # 初面时间
-        'K': 10,  # 面试官
-        'L': 16,  # 初面评价
-        'M': 12,  # 初面结论
-        'N': 12   # 招聘状态
+        'A': 8,
+        'B': 12,
+        'C': 30,
+        'D': 10,
+        'E': 12,
+        'F': 10,
+        'G': 10,
+        'H': 12,
+        'I': 12,
+        'J': 16,
+        'K': 10,
+        'L': 16,
+        'M': 12,
+        'N': 16,
+        'O': 12,
+        'P': 12
     }
 
     for col, width in column_widths.items():
@@ -158,6 +162,8 @@ def add_candidate(candidate_data: Dict[str, Any]) -> Dict[str, Any]:
         '面试官': candidate_data.get('interviewer', ''),
         '初面评价': candidate_data.get('first_interview_review', ''),
         '初面结论': candidate_data.get('first_interview_conclusion', ''),
+        '复面时间': candidate_data.get('second_interview_date', ''),
+        '复面结论': candidate_data.get('second_interview_conclusion', ''),
         '招聘状态': candidate_data.get('recruitment_status', '')
     }
 

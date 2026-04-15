@@ -78,13 +78,15 @@
                                 <th>面试官</th>
                                 <th>初面评价</th>
                                 <th>初面结论</th>
+                                <th>复面时间</th>
+                                <th>复面结论</th>
                                 <th>招聘状态</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="candidatesBody">
                             <tr>
-                                <td colspan="15" class="loading">加载中...</td>
+                                <td colspan="17" class="loading">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -155,6 +157,18 @@
                 <div class="form-group">
                     <label>初面结论</label>
                     <input type="text" id="editFirstInterviewConclusion" placeholder="初面结论">
+                </div>
+                <div class="form-group">
+                    <label>复面时间</label>
+                    <input type="datetime-local" id="editSecondInterviewDate">
+                </div>
+                <div class="form-group">
+                    <label>复面结论</label>
+                    <select id="editSecondInterviewConclusion">
+                        <option value="">请选择</option>
+                        <option value="通过">通过</option>
+                        <option value="不通过">不通过</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>招聘状态</label>
