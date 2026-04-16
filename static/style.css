@@ -170,6 +170,48 @@ header h1 {
     margin-bottom: 30px;
 }
 
+.stats-section-wrapper {
+    margin-bottom: 30px;
+}
+
+.stats-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.stats-filter-bar label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-width: 160px;
+}
+
+.stats-filter-bar input,
+.stats-filter-bar select {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: white;
+    font-size: 0.9rem;
+    min-width: 140px;
+}
+
+.stats-filter-bar input:focus,
+.stats-filter-bar select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(68, 114, 196, 0.12);
+}
+
 .stat-card {
     background: var(--card-bg);
     border-radius: 10px;
@@ -588,5 +630,17 @@ footer {
 
     .action-buttons {
         flex-direction: column;
+    }
+
+    .stats-filter-bar {
+        align-items: stretch;
+    }
+
+    .stats-filter-bar label {
+        min-width: 100%;
+    }
+
+    .stats-filter-bar .btn {
+        width: 100%;
     }
 }

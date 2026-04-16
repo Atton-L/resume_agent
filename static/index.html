@@ -32,27 +32,63 @@
             </section>
 
             <!-- 统计信息 -->
-            <section class="stats-section" id="statsSection">
-                <div class="stat-card">
-                    <span class="stat-value" id="totalCandidates">-</span>
-                    <span class="stat-label">总应聘者</span>
+            <section class="stats-section-wrapper">
+                <div class="stats-filter-bar">
+                    <label>
+                        开始日期
+                        <input type="date" id="statsStartDate">
+                    </label>
+                    <label>
+                        结束日期
+                        <input type="date" id="statsEndDate">
+                    </label>
+                    <label>
+                        上传人
+                        <select id="statsUploader">
+                            <option value="">全部上传人</option>
+                        </select>
+                    </label>
+                    <button class="btn btn-secondary" id="statsSearchBtn">查询统计</button>
+                    <button class="btn btn-secondary" id="statsResetBtn">重置</button>
                 </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="androidCount">-</span>
-                    <span class="stat-label">Android</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="linuxCount">-</span>
-                    <span class="stat-label">Linux</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="qnxCount">-</span>
-                    <span class="stat-label">QNX</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="canInterviewCount">-</span>
-                    <span class="stat-label">可约面</span>
-                </div>
+                <section class="stats-section" id="statsSection">
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalCandidates">-</span>
+                        <span class="stat-label">区间总简历</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="uploaderUploadCount">-</span>
+                        <span class="stat-label">上传人上传数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="firstInterviewPassCount">-</span>
+                        <span class="stat-label">初面通过人数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="secondInterviewCount">-</span>
+                        <span class="stat-label">复面通过人数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="onboardingCount">-</span>
+                        <span class="stat-label">入职人数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="androidCount">-</span>
+                        <span class="stat-label">Android</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="linuxCount">-</span>
+                        <span class="stat-label">Linux</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="qnxCount">-</span>
+                        <span class="stat-label">QNX</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="canInterviewCount">-</span>
+                        <span class="stat-label">可约面</span>
+                    </div>
+                </section>
             </section>
 
             <!-- 简历列表 -->
@@ -156,7 +192,12 @@
                 </div>
                 <div class="form-group">
                     <label>初面结论</label>
-                    <input type="text" id="editFirstInterviewConclusion" placeholder="初面结论">
+                    <select id="editFirstInterviewConclusion">
+                        <option value="">请选择</option>
+                        <option value="通过">通过</option>
+                        <option value="不通过">不通过</option>
+                    </select>
+<!--                    <input type="text" id="editFirstInterviewConclusion" placeholder="初面结论">-->
                 </div>
                 <div class="form-group">
                     <label>复面时间</label>
@@ -172,7 +213,12 @@
                 </div>
                 <div class="form-group">
                     <label>招聘状态</label>
-                    <input type="text" id="editRecruitmentStatus" placeholder="招聘状态">
+                    <select id="editRecruitmentStatus">
+                        <option value="">请选择</option>
+                        <option value="入职">入职</option>
+                        <option value="终止流程">终止流程</option>
+<!--                    <input type="text" id="editRecruitmentStatus" placeholder="招聘状态">-->
+                    </select>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelEdit">取消</button>

@@ -5,8 +5,8 @@
 import os
 import sys
 import shutil
-from typing import List
-from datetime import datetime
+from typing import List, Optional
+from datetime import datetime, date
 from urllib.parse import quote
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import FileResponse, JSONResponse
@@ -372,33 +372,135 @@ async def analyze_resume(candidate_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _normalize_text(value) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _parse_date_value(value) -> Optional[date]:
+    text = _normalize_text(value)
+    if not text:
+        return None
+
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y/%m/%d %H:%M"):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(text.replace("Z", "")).date()
+    except ValueError:
+        return None
+
+
+def _parse_query_date(date_text: Optional[str], field_name: str) -> Optional[date]:
+    if not date_text:
+        return None
+    parsed = _parse_date_value(date_text)
+    if not parsed:
+        raise HTTPException(status_code=422, detail=f"{field_name} 日期格式错误，应为 YYYY-MM-DD")
+    return parsed
+
+
+def _is_in_range(target: Optional[date], start: Optional[date], end: Optional[date]) -> bool:
+    if not target:
+        return False
+    if start and target < start:
+        return False
+    if end and target > end:
+        return False
+    return True
+
+
+def _is_pass_conclusion(value) -> bool:
+    text = _normalize_text(value).lower()
+    if not text:
+        return False
+    pass_keywords = {"通过", "pass", "passed", "ok", "yes", "y", "复面通过", "复试通过", "通过（建议录用）"}
+    return text in pass_keywords or ("通过" in text and "不通过" not in text)
+
+
 @app.get("/api/stats")
-async def get_statistics():
-    """获取统计信息"""
+async def get_statistics(start_date: Optional[str] = None, end_date: Optional[str] = None, uploader: Optional[str] = None):
+    """获取统计信息（支持按时间区间与上传人筛选）"""
     try:
         candidates = excel_manager.get_all_candidates()
 
-        total = len(candidates)
+        start = _parse_query_date(start_date, "start_date")
+        end = _parse_query_date(end_date, "end_date")
+        if start and end and start > end:
+            raise HTTPException(status_code=400, detail="start_date 不能晚于 end_date")
+
+        uploader_text = _normalize_text(uploader)
+
+        all_in_range = []
+        for c in candidates:
+            upload_day = _parse_date_value(c.get('简历上传日期', ''))
+            if start and (not upload_day or upload_day < start):
+                continue
+            if end and (not upload_day or upload_day > end):
+                continue
+            all_in_range.append(c)
+
+        filtered = all_in_range
+        if uploader_text:
+            filtered = [c for c in all_in_range if _normalize_text(c.get('上传人')) == uploader_text]
+
+        total_all_in_range = len(all_in_range)
         by_direction = {"Android": 0, "Linux": 0, "QNX": 0, "未确定": 0}
         can_interview = 0
+        first_interview_pass_count = 0
+        second_interview_count = 0
+        onboarding_count = 0
+        uploader_upload_count = len(filtered) if uploader_text else 0
 
-        for c in candidates:
-            direction = c.get('方向', '未确定')
+        for c in filtered:
+            direction = _normalize_text(c.get('方向', '未确定')) or '未确定'
             if direction in by_direction:
                 by_direction[direction] += 1
             else:
                 by_direction['未确定'] += 1
 
-            if c.get('是否可以约面') == '是':
+            if _normalize_text(c.get('是否可以约面')) == '是':
                 can_interview += 1
 
+            if _normalize_text(c.get('初面结论')) == '通过':
+                first_interview_pass_count += 1
+
+            second_interview_day = _parse_date_value(c.get('复面时间', ''))
+            if _is_pass_conclusion(c.get('复面结论', '')):
+                second_interview_count += 1
+
+            onboarding_day = _parse_date_value(c.get('入职日期', ''))
+            if onboarding_day:
+                if _is_in_range(onboarding_day, start, end):
+                    onboarding_count += 1
+            elif _normalize_text(c.get('招聘状态')) == '入职':
+                # 兼容历史数据：没有入职日期列时，沿用状态口径
+                onboarding_count += 1
+
+
         return {
-            "total": total,
+            "total": total_all_in_range,
             "by_direction": by_direction,
             "can_interview": can_interview,
-            "pending_interview": total - can_interview
+            "pending_interview": total_all_in_range - can_interview,
+            "filters": {
+                "start_date": start_date,
+                "end_date": end_date,
+                "uploader": uploader_text
+            },
+            "uploader_upload_count": uploader_upload_count,
+            "total_in_range": total_all_in_range,
+            "first_interview_pass_count": first_interview_pass_count,
+            "second_interview_count": second_interview_count,
+            "onboarding_count": onboarding_count
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

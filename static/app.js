@@ -15,6 +15,11 @@ const editForm = document.getElementById('editForm');
 const closeModalBtn = document.getElementById('closeModal');
 const cancelEditBtn = document.getElementById('cancelEdit');
 const toast = document.getElementById('toast');
+const statsSearchBtn = document.getElementById('statsSearchBtn');
+const statsResetBtn = document.getElementById('statsResetBtn');
+const statsStartDate = document.getElementById('statsStartDate');
+const statsEndDate = document.getElementById('statsEndDate');
+const statsUploader = document.getElementById('statsUploader');
 
 // 用户列表
 let users = [];
@@ -95,6 +100,22 @@ function setupEventListeners() {
             localStorage.setItem('lastUploader', uploaderSelect.value);
         }
     });
+
+    // 统计筛选
+    if (statsSearchBtn) {
+        statsSearchBtn.addEventListener('click', () => {
+            loadStats(getStatsFilters());
+        });
+    }
+
+    if (statsResetBtn) {
+        statsResetBtn.addEventListener('click', () => {
+            if (statsStartDate) statsStartDate.value = '';
+            if (statsEndDate) statsEndDate.value = '';
+            if (statsUploader) statsUploader.value = '';
+            loadStats();
+        });
+    }
 }
 
 // 加载用户列表
@@ -112,6 +133,21 @@ async function loadUsers() {
             option.textContent = user;
             uploaderSelect.appendChild(option);
         });
+
+        if (statsUploader) {
+            const previousStatsUploader = statsUploader.value;
+            statsUploader.innerHTML = '<option value="">全部上传人</option>';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user;
+                option.textContent = user;
+                statsUploader.appendChild(option);
+            });
+
+            if (previousStatsUploader && users.includes(previousStatsUploader)) {
+                statsUploader.value = previousStatsUploader;
+            }
+        }
     } catch (error) {
         console.error('加载用户列表失败:', error);
     }
@@ -221,20 +257,50 @@ async function loadCandidates() {
     }
 }
 
+// 获取统计筛选条件
+function getStatsFilters() {
+    return {
+        start_date: statsStartDate ? statsStartDate.value : '',
+        end_date: statsEndDate ? statsEndDate.value : '',
+        uploader: statsUploader ? statsUploader.value : ''
+    };
+}
+
 // 加载统计信息
-async function loadStats() {
+async function loadStats(filters = {}) {
     try {
-        const response = await fetch(`${API_BASE}/stats`);
+        const params = new URLSearchParams();
+        if (filters.start_date) params.set('start_date', filters.start_date);
+        if (filters.end_date) params.set('end_date', filters.end_date);
+        if (filters.uploader) params.set('uploader', filters.uploader);
+
+        const url = params.toString() ? `${API_BASE}/stats?${params.toString()}` : `${API_BASE}/stats`;
+        const response = await fetch(url);
         const stats = await response.json();
 
-        document.getElementById('totalCandidates').textContent = stats.total;
-        document.getElementById('androidCount').textContent = stats.by_direction.Android;
-        document.getElementById('linuxCount').textContent = stats.by_direction.Linux;
-        document.getElementById('qnxCount').textContent = stats.by_direction.QNX;
-        document.getElementById('canInterviewCount').textContent = stats.can_interview;
+        if (!response.ok) {
+            throw new Error(stats.detail || '统计接口请求失败');
+        }
+
+        document.getElementById('totalCandidates').textContent = stats.total_in_range ?? stats.total ?? 0;
+        document.getElementById('androidCount').textContent = stats.by_direction?.Android ?? 0;
+        document.getElementById('linuxCount').textContent = stats.by_direction?.Linux ?? 0;
+        document.getElementById('qnxCount').textContent = stats.by_direction?.QNX ?? 0;
+        document.getElementById('canInterviewCount').textContent = stats.can_interview ?? 0;
+
+        const uploaderUploadCountEl = document.getElementById('uploaderUploadCount');
+        const firstInterviewPassCountEl = document.getElementById('firstInterviewPassCount');
+        const secondInterviewCountEl = document.getElementById('secondInterviewCount');
+        const onboardingCountEl = document.getElementById('onboardingCount');
+
+        if (uploaderUploadCountEl) uploaderUploadCountEl.textContent = stats.uploader_upload_count ?? 0;
+        if (firstInterviewPassCountEl) firstInterviewPassCountEl.textContent = stats.first_interview_pass_count ?? 0;
+        if (secondInterviewCountEl) secondInterviewCountEl.textContent = stats.second_interview_count ?? 0;
+        if (onboardingCountEl) onboardingCountEl.textContent = stats.onboarding_count ?? 0;
 
     } catch (error) {
         console.error('加载统计信息失败:', error);
+        showToast('加载统计信息失败：' + error.message, 'error');
     }
 }
 
