@@ -5,6 +5,7 @@
 import os
 import sys
 import shutil
+import re
 from typing import List, Optional
 from datetime import datetime, date
 from urllib.parse import quote
@@ -47,6 +48,48 @@ app.add_middleware(
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/resumes", StaticFiles(directory=RESUME_DIR), name="resumes")
+
+
+def _normalize_name(name: Optional[str]) -> str:
+    if not name:
+        return ""
+    text = str(name).strip()
+    text = re.sub(r'^(姓名|候选人|应聘者)[:：\s]*', '', text)
+    text = re.sub(r'(先生|女士|小姐|同学)$', '', text)
+    return text.strip()
+
+
+def _is_valid_person_name(name: Optional[str]) -> bool:
+    text = _normalize_name(name)
+    if not re.match(r'^[\u4e00-\u9fa5]{2,4}$', text):
+        return False
+    bad_tokens = {'简历', '架构', '工程', '开发', '通用', '更新', '最新', '应聘', '岗位'}
+    return not any(token in text for token in bad_tokens)
+
+
+def _resolve_final_name(parsed_name: Optional[str], ai_name: Optional[str], filename: str) -> str:
+    rule_name = _normalize_name(parsed_name)
+    model_name = _normalize_name(ai_name)
+
+    # 1) 优先规则解析出的正文姓名
+    if _is_valid_person_name(rule_name):
+        return rule_name
+
+    # 2) 规则失败时优先文件名提取
+    name_from_file = _normalize_name(resume_parser.extract_name_from_filename(filename) or '')
+    if _is_valid_person_name(name_from_file):
+        return name_from_file
+
+    # 3) 最后使用AI结果（仅在格式合法时）
+    if _is_valid_person_name(model_name):
+        return model_name
+
+    # 4) 兜底：称谓名
+    honorific_match = re.search(r'([\u4e00-\u9fa5]{1,3}(?:先生|女士|小姐))', filename)
+    if honorific_match:
+        return honorific_match.group(1)
+
+    return '未知'
 
 
 @app.get("/")
@@ -97,22 +140,9 @@ async def upload_resume(
         if not parsed_info.get('direction') or parsed_info['direction'] == '未确定':
             parsed_info['direction'] = resume_parser._detect_direction(parsed_info['raw_text'])
 
-        # 混合方案：AI提取姓名，失败时使用算法提取的结果
+        # 姓名决策：规则优先，AI兜底，避免AI误识别岗位词
         ai_name = ai_analyzer.extract_name_with_ai(parsed_info['raw_text'])
-        final_name = ai_name if ai_name else parsed_info['name']
-
-        # 降级方案：从原始文件名中提取姓名
-        if final_name == '未知':
-            name_from_file = resume_parser.extract_name_from_filename(file.filename)
-            if name_from_file:
-                final_name = name_from_file
-
-        # 最终降级：如果文件名含称谓（如"高先生"），保留称谓显示
-        if final_name == '未知':
-            import re
-            honorific_match = re.search(r'([\u4e00-\u9fa5]{1,3}(?:先生|女士|小姐))', file.filename)
-            if honorific_match:
-                final_name = honorific_match.group(1)
+        final_name = _resolve_final_name(parsed_info.get('name'), ai_name, file.filename)
 
         # 自动AI分析
         jd_text = ai_analyzer.load_jd_text()

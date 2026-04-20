@@ -8,6 +8,45 @@ from typing import Dict, Optional, List
 from datetime import datetime
 
 
+_SURNAME_SET = {
+    '赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许',
+    '何', '吕', '施', '张', '孔', '曹', '严', '华', '金', '魏', '陶', '姜', '戚', '谢', '邹', '喻', '柏', '水', '窦', '章',
+    '云', '苏', '潘', '葛', '奚', '范', '彭', '郎', '鲁', '韦', '昌', '马', '苗', '凤', '花', '方', '俞', '任', '袁', '柳',
+    '酆', '鲍', '史', '唐', '费', '廉', '岑', '薛', '雷', '贺', '倪', '汤', '滕', '殷', '罗', '毕', '郝', '邬', '安', '常',
+    '乐', '于', '时', '傅', '皮', '卞', '齐', '康', '伍', '余', '元', '卜', '顾', '孟', '平', '黄', '和', '穆', '萧', '尹'
+}
+
+
+def _clean_candidate_name(name: str) -> str:
+    name = (name or '').strip()
+    name = re.sub(r'^(姓名|候选人|应聘者)[:：\s]*', '', name)
+    name = re.sub(r'(先生|女士|小姐|同学)$', '', name)
+    return name.strip()
+
+
+def _is_probable_chinese_name(name: str) -> bool:
+    name = _clean_candidate_name(name)
+    if not re.match(r'^[\u4e00-\u9fa5]{2,4}$', name):
+        return False
+    if _is_common_word(name):
+        return False
+    if any(token in name for token in ('简历', '架构', '工程', '开发', '通用', '更新', '最新')):
+        return False
+    return name[0] in _SURNAME_SET
+
+
+def _score_name_candidate(name: str) -> int:
+    name = _clean_candidate_name(name)
+    if not _is_probable_chinese_name(name):
+        return -1
+    score = 10
+    if len(name) in (2, 3):
+        score += 5
+    if len(name) == 4:
+        score += 1
+    return score
+
+
 def extract_text_from_file(file_path: str) -> str:
     """从文件中提取文本内容"""
     ext = os.path.splitext(file_path)[1].lower()
@@ -87,50 +126,43 @@ def parse_resume(file_path: str) -> Dict[str, any]:
 
 def _extract_name(text: str) -> str:
     """提取姓名"""
-    # 常见姓名模式 - 更精确的匹配
+    candidates: List[str] = []
+
     patterns = [
-        # 标准格式：姓名：xxx 或 姓名:xxx
-        r'姓\s*名[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，|\d)',
-        r'姓名[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，|\d)',
-        # 求职信息格式
-        r'应聘者[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，)',
-        r'候选人[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，)',
-        # 个人信息格式
-        r'(?:个人信息|基本信息)[：:]?\s*[\r\n]+([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，|\d)',
-        # 个人简历格式（姓名在开头）
-        r'个人简历[：:]?\s*[\r\n]+([\u4e00-\u9fa5]{2,4})',
-        # 简历标题格式
-        r'简\s*历[：:]?\s*[\r\n]+([\u4e00-\u9fa5]{2,4})',
+        r'姓\s*名[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，|\d|\n)',
+        r'姓名[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，|\d|\n)',
+        r'应聘者[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，|\n)',
+        r'候选人[：:]\s*([\u4e00-\u9fa5]{2,4})(?:\s|$|,|，|\n)',
+        r'(?:Name|NAME)[：:]?\s*([A-Za-z\u4e00-\u9fa5\s]{2,20})',
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, text)
-        if match:
-            name = match.group(1).strip()
-            # 验证是否是有效姓名（2-4个中文字符，排除常见非姓名词）
-            if re.match(r'^[\u4e00-\u9fa5]{2,4}$', name) and not _is_common_word(name):
-                return name
+        for m in re.finditer(pattern, text):
+            candidates.append(_clean_candidate_name(m.group(1)))
 
-    # 尝试从开头提取（许多简历开头是姓名）
     lines = text.split('\n')
-    for i, line in enumerate(lines[:10]):
+    for line in lines[:15]:
         line = line.strip()
-        # 跳过空行和标题行
         if not line:
             continue
         if any(keyword in line for keyword in ['简历', 'RESUME', 'CV', '个人', '应聘', '求职', '联系', '电话', '邮箱']):
             continue
-        # 检查是否是有效姓名（独立行，2-4个中文字符）
-        if re.match(r'^[\u4e00-\u9fa5]{2,4}$', line) and not _is_common_word(line):
-            return line
+        if re.match(r'^[\u4e00-\u9fa5]{2,4}$', line):
+            candidates.append(_clean_candidate_name(line))
 
-    # 最后尝试：查找邮箱前的中文名（很多简历格式：姓名 邮箱）
     email_pattern = r'([\u4e00-\u9fa5]{2,4})\s+[a-zA-Z0-9._%+-]+@'
-    email_match = re.search(email_pattern, text)
-    if email_match and not _is_common_word(email_match.group(1)):
-        return email_match.group(1)
+    for m in re.finditer(email_pattern, text):
+        candidates.append(_clean_candidate_name(m.group(1)))
 
-    return "未知"
+    best_name = '未知'
+    best_score = -1
+    for candidate in candidates:
+        score = _score_name_candidate(candidate)
+        if score > best_score:
+            best_score = score
+            best_name = candidate
+
+    return best_name if best_score >= 0 else '未知'
 
 
 def _is_common_word(text: str) -> bool:
@@ -150,33 +182,18 @@ def _is_common_word(text: str) -> bool:
 def extract_name_from_filename(filename: str) -> Optional[str]:
     """
     从文件名中提取姓名
-
-    适用于文件名包含中文姓名的情况，如：
-    - 张荣辉-通用.pdf
-    - 焦克新简历.pdf
-    - 丁志鹏_架构师.pdf
-    - 朱志强2026_01.pdf
-    - 高先生.pdf → 无法提取，返回 None（交给AI或文本提取）
     """
-    # 去掉扩展名
     name_part = os.path.splitext(filename)[0]
-    # 去掉时间戳前缀（如 20260410_100221_）
     name_part = re.sub(r'^\d{8}_\d{6}_', '', name_part)
-    # 去掉称谓后缀（先生/女士/小姐）
     name_part = re.sub(r'(先生|女士|小姐|同学)$', '', name_part)
-    # 去掉常见非姓名后缀
-    name_part = re.sub(
-        r'[-_]?(简历|个人简历|resume|cv|通用|最新版|最新|更新|投递|应聘|求职).*$',
-        '', name_part, flags=re.IGNORECASE
-    )
-    # 去掉尾部数字及后续内容（如 2026_01）
+    name_part = re.sub(r'[-_]?(简历|个人简历|resume|cv|通用|最新版|最新|更新|投递|应聘|求职).*$', '', name_part, flags=re.IGNORECASE)
     name_part = re.sub(r'[-_]?\d{4,}.*$', '', name_part)
-    # 去掉分隔符后的描述内容（如 _架构师、-高级工程师）
     name_part = re.sub(r'[-_].+$', '', name_part)
-    # 提取前2-4个中文字符作为姓名
-    match = re.search(r'([\u4e00-\u9fa5]{2,4})', name_part)
-    if match and not _is_common_word(match.group(1)):
-        return match.group(1)
+
+    for m in re.finditer(r'([\u4e00-\u9fa5]{2,4})', name_part):
+        candidate = _clean_candidate_name(m.group(1))
+        if _is_probable_chinese_name(candidate):
+            return candidate
     return None
 
 
