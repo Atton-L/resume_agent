@@ -20,9 +20,20 @@ const statsResetBtn = document.getElementById('statsResetBtn');
 const statsStartDate = document.getElementById('statsStartDate');
 const statsEndDate = document.getElementById('statsEndDate');
 const statsUploader = document.getElementById('statsUploader');
+const nameSearchInput = document.getElementById('nameSearchInput');
+const nameSearchBtn = document.getElementById('nameSearchBtn');
+const namePrevBtn = document.getElementById('namePrevBtn');
+const nameNextBtn = document.getElementById('nameNextBtn');
+const nameClearBtn = document.getElementById('nameClearBtn');
+const nameSearchCount = document.getElementById('nameSearchCount');
+const nameSearchPreview = document.getElementById('nameSearchPreview');
+const nameSearchPreviewList = document.getElementById('nameSearchPreviewList');
 
 // 用户列表
 let users = [];
+let currentNameKeyword = '';
+let matchedNameRows = [];
+let currentMatchIndex = -1;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,6 +126,158 @@ function setupEventListeners() {
             if (statsUploader) statsUploader.value = '';
             loadStats();
         });
+    }
+
+    if (nameSearchBtn) {
+        nameSearchBtn.addEventListener('click', () => performNameSearch());
+    }
+    if (namePrevBtn) {
+        namePrevBtn.addEventListener('click', () => gotoPrevNameMatch());
+    }
+    if (nameNextBtn) {
+        nameNextBtn.addEventListener('click', () => gotoNextNameMatch());
+    }
+    if (nameClearBtn) {
+        nameClearBtn.addEventListener('click', clearNameSearch);
+    }
+    if (nameSearchInput) {
+        nameSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performNameSearch();
+            }
+        });
+    }
+}
+
+function updateNameSearchCount() {
+    if (!nameSearchCount) return;
+    if (!matchedNameRows.length || currentMatchIndex < 0) {
+        nameSearchCount.textContent = `0/${matchedNameRows.length}`;
+        return;
+    }
+    nameSearchCount.textContent = `${currentMatchIndex + 1}/${matchedNameRows.length}`;
+}
+
+function renderNamePreview() {
+    if (!nameSearchPreview || !nameSearchPreviewList) return;
+
+    if (!matchedNameRows.length) {
+        nameSearchPreviewList.innerHTML = '<div class="name-search-preview-empty">未找到匹配结果</div>';
+        nameSearchPreview.hidden = false;
+        return;
+    }
+
+    nameSearchPreview.hidden = false;
+    nameSearchPreviewList.innerHTML = matchedNameRows.map((row, idx) => {
+        const cells = row.querySelectorAll('td');
+        const seq = cells[0] ? cells[0].textContent.trim() : '-';
+        const name = row.dataset.candidateName || (cells[1] ? cells[1].textContent.trim() : '');
+        const uploadDate = cells[4] ? cells[4].textContent.trim() : '-';
+        const uploader = cells[5] ? cells[5].textContent.trim() : '-';
+        const activeClass = idx === currentMatchIndex ? ' active' : '';
+        return `<button type="button" class="name-search-preview-item${activeClass}" data-preview-index="${idx}">
+            <span class="preview-main">${escapeHtml(name)} <em>#${escapeHtml(seq)}</em></span>
+            <span class="preview-sub">${escapeHtml(uploadDate)} | ${escapeHtml(uploader)}</span>
+        </button>`;
+    }).join('');
+
+    const previewItems = nameSearchPreviewList.querySelectorAll('.name-search-preview-item');
+    previewItems.forEach((item) => {
+        item.addEventListener('click', () => {
+            const idx = Number(item.dataset.previewIndex);
+            if (Number.isNaN(idx)) return;
+            currentMatchIndex = idx;
+            focusCurrentMatch(true);
+            renderNamePreview();
+        });
+    });
+}
+
+function clearNameHighlights() {
+    const rows = candidatesBody.querySelectorAll('tr');
+    rows.forEach((row) => {
+        row.classList.remove('name-match-row', 'active-name-match');
+    });
+}
+
+function applyNameHighlights() {
+    clearNameHighlights();
+    matchedNameRows.forEach((row, idx) => {
+        row.classList.add('name-match-row');
+        if (idx === currentMatchIndex) {
+            row.classList.add('active-name-match');
+        }
+    });
+    updateNameSearchCount();
+}
+
+function collectNameMatches(keyword) {
+    const normalized = (keyword || '').trim().toLowerCase();
+    const rows = Array.from(candidatesBody.querySelectorAll('tr[data-candidate-name]'));
+    if (!normalized) {
+        matchedNameRows = [];
+        currentMatchIndex = -1;
+        applyNameHighlights();
+        return;
+    }
+
+    matchedNameRows = rows.filter((row) => {
+        const name = (row.dataset.candidateName || '').toLowerCase();
+        return name.includes(normalized);
+    });
+
+    currentMatchIndex = matchedNameRows.length > 0 ? 0 : -1;
+    applyNameHighlights();
+    renderNamePreview();
+}
+
+function focusCurrentMatch(allowScroll = false) {
+    if (currentMatchIndex < 0 || !matchedNameRows[currentMatchIndex]) {
+        return;
+    }
+    const row = matchedNameRows[currentMatchIndex];
+    if (allowScroll) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    applyNameHighlights();
+}
+
+function performNameSearch() {
+    currentNameKeyword = nameSearchInput ? nameSearchInput.value.trim() : '';
+    collectNameMatches(currentNameKeyword);
+    if (!matchedNameRows.length && currentNameKeyword) {
+        showToast(`未找到姓名包含“${currentNameKeyword}”的记录`, 'info');
+        return;
+    }
+    // 搜索后仅显示预览，不自动跳转
+}
+
+function gotoPrevNameMatch() {
+    if (!matchedNameRows.length) return;
+    currentMatchIndex = (currentMatchIndex - 1 + matchedNameRows.length) % matchedNameRows.length;
+    applyNameHighlights();
+    renderNamePreview();
+}
+
+function gotoNextNameMatch() {
+    if (!matchedNameRows.length) return;
+    currentMatchIndex = (currentMatchIndex + 1) % matchedNameRows.length;
+    applyNameHighlights();
+    renderNamePreview();
+}
+
+function clearNameSearch() {
+    currentNameKeyword = '';
+    if (nameSearchInput) nameSearchInput.value = '';
+    matchedNameRows = [];
+    currentMatchIndex = -1;
+    applyNameHighlights();
+    if (nameSearchPreviewList) {
+        nameSearchPreviewList.innerHTML = '';
+    }
+    if (nameSearchPreview) {
+        nameSearchPreview.hidden = true;
     }
 }
 
@@ -209,6 +372,7 @@ async function loadCandidates() {
 
         if (candidates.length === 0) {
             candidatesBody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:#666;padding:40px;">暂无应聘者数据</td></tr>';
+            clearNameSearch();
             return;
         }
 
@@ -217,7 +381,7 @@ async function loadCandidates() {
             const canPreview = fileExt === '.pdf';
 
             return `
-            <tr>
+            <tr data-candidate-name="${escapeHtml(c.name || '')}">
                 <td>${c.id}</td>
                 <td><strong>${escapeHtml(c.name)}</strong></td>
                 <td>
@@ -252,8 +416,18 @@ async function loadCandidates() {
         `;
         }).join('');
 
+        if (nameSearchInput && currentNameKeyword) {
+            nameSearchInput.value = currentNameKeyword;
+            collectNameMatches(currentNameKeyword);
+        } else {
+            clearNameHighlights();
+            updateNameSearchCount();
+            if (nameSearchPreview) nameSearchPreview.hidden = true;
+        }
+
     } catch (error) {
         candidatesBody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:#C00000;">加载失败：' + error.message + '</td></tr>';
+        clearNameSearch();
     }
 }
 

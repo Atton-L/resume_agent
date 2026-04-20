@@ -95,7 +95,23 @@
             <section class="list-section">
                 <div class="list-header">
                     <h2>应聘者列表</h2>
-                    <button class="btn btn-secondary" id="refreshBtn">🔄 刷新</button>
+                    <div class="list-header-actions">
+                        <div class="name-search-bar">
+                            <input type="text" id="nameSearchInput" placeholder="按姓名全局搜索...">
+                            <button class="btn btn-secondary" id="nameSearchBtn">搜索</button>
+                            <button class="btn btn-secondary" id="namePrevBtn">上一条</button>
+                            <button class="btn btn-secondary" id="nameNextBtn">下一条</button>
+                            <button class="btn btn-secondary" id="nameClearBtn">清空</button>
+                            <span id="nameSearchCount" class="name-search-count">0/0</span>
+                        </div>
+                        <div id="nameSearchPreview" class="name-search-preview" hidden>
+                            <div class="name-search-preview-header">
+                                <span>搜索结果预览</span>
+                            </div>
+                            <div id="nameSearchPreviewList" class="name-search-preview-list"></div>
+                        </div>
+                        <button class="btn btn-secondary" id="refreshBtn">🔄 刷新</button>
+                    </div>
                 </div>
                 <div class="table-container">
                     <table class="candidates-table" id="candidatesTable">

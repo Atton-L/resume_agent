@@ -247,9 +247,38 @@ header h1 {
     margin-bottom: 20px;
 }
 
-.list-header h2 {
-    font-size: 1.3rem;
-    color: var(--text-color);
+.list-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.name-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.name-search-bar input {
+    width: 180px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.name-search-bar input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(68, 114, 196, 0.12);
+}
+
+.name-search-count {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    min-width: 48px;
+    text-align: right;
 }
 
 .table-container {
@@ -613,6 +642,76 @@ footer {
     word-break: break-word;
 }
 
+/* Search Preview Panel */
+.name-search-preview {
+    min-width: 320px;
+    max-width: 420px;
+    max-height: 220px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.name-search-preview-header {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: #f7f7f7;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.name-search-preview-list {
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.name-search-preview-item {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.name-search-preview-item:hover {
+    background: #f5f8ff;
+}
+
+.name-search-preview-item.active {
+    background: #e9f0ff;
+    border-left: 3px solid var(--primary-color);
+    padding-left: 7px;
+}
+
+.preview-main {
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.preview-main em {
+    color: var(--text-secondary);
+    font-style: normal;
+    margin-left: 4px;
+    font-size: 0.82rem;
+}
+
+.preview-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.name-search-preview-empty {
+    padding: 12px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .stats-section {
@@ -643,4 +742,21 @@ footer {
     .stats-filter-bar .btn {
         width: 100%;
     }
+}
+
+/* 姓名搜索命中行高亮 */
+.candidates-table tbody tr.name-match-row {
+    background-color: #fffbe6;
+}
+
+.candidates-table tbody tr.name-match-row td:first-child {
+    border-left: 3px solid #ffc000;
+}
+
+.candidates-table tbody tr.name-match-row.active-name-match {
+    background-color: #fff2b3;
+}
+
+.candidates-table tbody tr.name-match-row.active-name-match td:first-child {
+    border-left-color: #c00000;
 }
