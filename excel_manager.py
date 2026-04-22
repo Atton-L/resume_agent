@@ -17,6 +17,7 @@ COLUMNS = [
     "序号",
     "姓名",
     "简历附件",
+    "简历哈希",  # 新增字段
     "方向",
     "简历上传日期",
     "上传人",
@@ -101,9 +102,9 @@ def _format_excel():
         'A': 8,
         'B': 12,
         'C': 30,
-        'D': 10,
-        'E': 12,
-        'F': 10,
+        'D': 12,  # 新增字段宽度
+        'E': 10,
+        'F': 12,
         'G': 10,
         'H': 12,
         'I': 12,
@@ -152,6 +153,7 @@ def add_candidate(candidate_data: Dict[str, Any]) -> Dict[str, Any]:
         '序号': new_id,
         '姓名': candidate_data.get('name', ''),
         '简历附件': candidate_data.get('resume_file', ''),
+        '简历哈希': candidate_data.get('resume_hash', ''),  # 新增字段
         '方向': candidate_data.get('direction', ''),
         '简历上传日期': candidate_data.get('upload_date', datetime.now().strftime('%Y-%m-%d')),
         '上传人': candidate_data.get('uploader', '系统'),
@@ -237,6 +239,14 @@ def get_candidate(candidate_id: int) -> Optional[Dict[str, Any]]:
         return None
 
     return result.iloc[0].to_dict()
+
+
+def check_duplicate_candidate(name: str, resume_hash: str) -> bool:
+    """检查是否存在同名且简历哈希相同的记录"""
+    if not os.path.exists(EXCEL_FILE):
+        return False
+    df = _read_excel()
+    return ((df['姓名'] == name) & (df['简历哈希'] == resume_hash)).any()
 
 
 # 初始化模块

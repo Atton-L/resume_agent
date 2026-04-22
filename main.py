@@ -6,6 +6,7 @@ import os
 import sys
 import shutil
 import re
+import hashlib
 from typing import List, Optional
 from datetime import datetime, date
 from urllib.parse import quote
@@ -133,6 +134,18 @@ async def upload_resume(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        # 计算简历内容哈希
+        def calc_file_hash(path):
+            h = hashlib.sha256()
+            with open(path, 'rb') as f:
+                while True:
+                    chunk = f.read(8192)
+                    if not chunk:
+                        break
+                    h.update(chunk)
+            return h.hexdigest()
+        resume_hash = calc_file_hash(file_path)
+
         # 解析简历
         parsed_info = resume_parser.parse_resume(file_path)
 
@@ -143,6 +156,13 @@ async def upload_resume(
         # 姓名决策：规则优先，AI兜底，避免AI误识别岗位词
         ai_name = ai_analyzer.extract_name_with_ai(parsed_info['raw_text'])
         final_name = _resolve_final_name(parsed_info.get('name'), ai_name, file.filename)
+
+        # 查重：同名且简历内容相同禁止上传
+        if excel_manager.check_duplicate_candidate(final_name, resume_hash):
+            return UploadResponse(
+                success=False,
+                message=f"该应聘者的相同简历已上传，禁止重复上传。"
+            )
 
         # 自动AI分析
         jd_text = ai_analyzer.load_jd_text()
@@ -162,6 +182,7 @@ async def upload_resume(
         candidate_data = {
             'name': final_name,
             'resume_file': safe_filename,
+            'resume_hash': resume_hash,
             'direction': parsed_info['direction'],
             'upload_date': datetime.now().strftime('%Y-%m-%d'),
             'uploader': uploader
