@@ -161,7 +161,7 @@ async def upload_resume(
         if excel_manager.check_duplicate_candidate(final_name, resume_hash):
             return UploadResponse(
                 success=False,
-                message=f"该应聘者的相同简历已上传，禁止重复上传。"
+                message=f"该简历文件已存在于系统中，禁止重复上传。"
             )
 
         # 自动AI分析

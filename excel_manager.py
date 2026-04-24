@@ -242,11 +242,11 @@ def get_candidate(candidate_id: int) -> Optional[Dict[str, Any]]:
 
 
 def check_duplicate_candidate(name: str, resume_hash: str) -> bool:
-    """检查是否存在同名且简历哈希相同的记录"""
+    """检查是否存在相同简历内容的记录（通过哈希判断）"""
     if not os.path.exists(EXCEL_FILE):
         return False
     df = _read_excel()
-    return ((df['姓名'] == name) & (df['简历哈希'] == resume_hash)).any()
+    return (df['简历哈希'] == resume_hash).any()
 
 
 # 初始化模块
