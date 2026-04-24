@@ -551,9 +551,21 @@ async function openEditModal(id) {
             document.getElementById('editInterviewDateEnd').value = '';
         }
         if (candidate.second_interview_date) {
-            document.getElementById('editSecondInterviewDate').value = candidate.second_interview_date.substring(0, 16).replace(' ', 'T');
+            if (candidate.second_interview_date.includes('至')) {
+                const parts = candidate.second_interview_date.split('至');
+                try {
+                    document.getElementById('editSecondInterviewDateStart').value = parts[0] && parts[0].trim() ? parts[0].trim().substring(0, 16).replace(' ', 'T') : '';
+                    document.getElementById('editSecondInterviewDateEnd').value = parts[1] && parts[1].trim() ? parts[1].trim().substring(0, 16).replace(' ', 'T') : '';
+                } catch(e) {}
+            } else {
+                try {
+                    document.getElementById('editSecondInterviewDateStart').value = candidate.second_interview_date.substring(0, 16).replace(' ', 'T');
+                } catch(e) {}
+                document.getElementById('editSecondInterviewDateEnd').value = '';
+            }
         } else {
-            document.getElementById('editSecondInterviewDate').value = '';
+            document.getElementById('editSecondInterviewDateStart').value = '';
+            document.getElementById('editSecondInterviewDateEnd').value = '';
         }
 
         editModal.classList.add('active');
@@ -599,9 +611,14 @@ async function handleEditSubmit(e) {
         updateData.interview_date = '';
     }
 
-    const secondInterviewDate = document.getElementById('editSecondInterviewDate').value;
-    if (secondInterviewDate) {
-        updateData.second_interview_date = secondInterviewDate.replace('T', ' ');
+    const secondInterviewDateStart = document.getElementById('editSecondInterviewDateStart').value;
+    const secondInterviewDateEnd = document.getElementById('editSecondInterviewDateEnd').value;
+    if (secondInterviewDateStart && secondInterviewDateEnd) {
+        const startStr = secondInterviewDateStart.replace('T', ' ');
+        const endStr = secondInterviewDateEnd.replace('T', ' ');
+        updateData.second_interview_date = `${startStr} 至 ${endStr}`;
+    } else if (secondInterviewDateStart) {
+        updateData.second_interview_date = secondInterviewDateStart.replace('T', ' ');
     } else {
         updateData.second_interview_date = '';
     }
