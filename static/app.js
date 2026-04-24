@@ -534,12 +534,26 @@ async function openEditModal(id) {
 
         // 处理日期时间格式
         if (candidate.interview_date) {
-            const date = new Date(candidate.interview_date);
-            document.getElementById('editInterviewDate').value = date.toISOString().slice(0, 16);
+            if (candidate.interview_date.includes('至')) {
+                const parts = candidate.interview_date.split('至');
+                try {
+                    document.getElementById('editInterviewDateStart').value = parts[0] && parts[0].trim() ? parts[0].trim().substring(0, 16).replace(' ', 'T') : '';
+                    document.getElementById('editInterviewDateEnd').value = parts[1] && parts[1].trim() ? parts[1].trim().substring(0, 16).replace(' ', 'T') : '';
+                } catch(e) {}
+            } else {
+                try {
+                    document.getElementById('editInterviewDateStart').value = candidate.interview_date.substring(0, 16).replace(' ', 'T');
+                } catch(e) {}
+                document.getElementById('editInterviewDateEnd').value = '';
+            }
+        } else {
+            document.getElementById('editInterviewDateStart').value = '';
+            document.getElementById('editInterviewDateEnd').value = '';
         }
         if (candidate.second_interview_date) {
-            const secondDate = new Date(candidate.second_interview_date);
-            document.getElementById('editSecondInterviewDate').value = secondDate.toISOString().slice(0, 16);
+            document.getElementById('editSecondInterviewDate').value = candidate.second_interview_date.substring(0, 16).replace(' ', 'T');
+        } else {
+            document.getElementById('editSecondInterviewDate').value = '';
         }
 
         editModal.classList.add('active');
@@ -573,13 +587,23 @@ async function handleEditSubmit(e) {
         recruitment_status: document.getElementById('editRecruitmentStatus').value
     };
 
-    const interviewDate = document.getElementById('editInterviewDate').value;
-    if (interviewDate) {
-        updateData.interview_date = new Date(interviewDate).toISOString().slice(0, 19).replace('T', ' ');
+    const interviewDateStart = document.getElementById('editInterviewDateStart').value;
+    const interviewDateEnd = document.getElementById('editInterviewDateEnd').value;
+    if (interviewDateStart && interviewDateEnd) {
+        const startStr = interviewDateStart.replace('T', ' ');
+        const endStr = interviewDateEnd.replace('T', ' ');
+        updateData.interview_date = `${startStr} 至 ${endStr}`;
+    } else if (interviewDateStart) {
+        updateData.interview_date = interviewDateStart.replace('T', ' ');
+    } else {
+        updateData.interview_date = '';
     }
+
     const secondInterviewDate = document.getElementById('editSecondInterviewDate').value;
     if (secondInterviewDate) {
-        updateData.second_interview_date = new Date(secondInterviewDate).toISOString().slice(0, 19).replace('T', ' ');
+        updateData.second_interview_date = secondInterviewDate.replace('T', ' ');
+    } else {
+        updateData.second_interview_date = '';
     }
 
     try {
