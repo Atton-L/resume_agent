@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lastUploader) {
         setTimeout(() => {
             uploaderSelect.value = lastUploader;
+            uploaderSelect.dispatchEvent(new Event('change'));
         }, 300);
     }
 });
@@ -109,6 +110,10 @@ function setupEventListeners() {
     uploaderSelect.addEventListener('change', () => {
         if (uploaderSelect.value) {
             localStorage.setItem('lastUploader', uploaderSelect.value);
+        }
+        const hhInput = document.getElementById('uploaderHeadhunterName');
+        if (hhInput) {
+            hhInput.style.display = uploaderSelect.value === '猎头' ? 'inline-block' : 'none';
         }
     });
 
@@ -288,6 +293,10 @@ async function loadUsers() {
         const data = await response.json();
         users = data.users || [];
 
+        if (!users.includes('猎头')) {
+            users.push('猎头');
+        }
+
         // 填充下拉框
         uploaderSelect.innerHTML = '<option value="">选择上传人...</option>';
         users.forEach(user => {
@@ -326,11 +335,21 @@ function handleFileSelect(e) {
 
 // 处理文件上传
 async function handleFileUpload(file) {
-    const uploader = uploaderSelect.value || '系统';
+    let uploader = uploaderSelect.value || '系统';
 
     if (uploaderSelect.value === '') {
         showToast('请选择上传人', 'error');
         return;
+    }
+
+    if (uploader === '猎头') {
+        const hhInput = document.getElementById('uploaderHeadhunterName');
+        const hhName = hhInput ? hhInput.value.trim() : '';
+        if (!hhName) {
+            showToast('请填写猎头姓名', 'error');
+            return;
+        }
+        uploader = `猎头-${hhName}`;
     }
 
     const formData = new FormData();
