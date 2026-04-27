@@ -76,6 +76,7 @@ class CandidateCreate(CandidateBase):
 
 class CandidateUpdate(BaseModel):
     """更新应聘者请求"""
+    uploader: Optional[str] = None
     name: Optional[str] = None
     direction: Optional[str] = None
     work_base: Optional[str] = None

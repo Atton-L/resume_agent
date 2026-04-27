@@ -285,6 +285,8 @@ async def update_candidate(candidate_id: int, update_data: CandidateUpdate):
     try:
         # 构建更新字典
         update_dict = {}
+        if update_data.uploader is not None:
+            update_dict['上传人'] = update_data.uploader
         if update_data.name is not None:
             update_dict['姓名'] = update_data.name
         if update_data.direction is not None:

@@ -29,6 +29,17 @@ const nameSearchCount = document.getElementById('nameSearchCount');
 const nameSearchPreview = document.getElementById('nameSearchPreview');
 const nameSearchPreviewList = document.getElementById('nameSearchPreviewList');
 
+// Zoom control
+const tableZoomSlider = document.getElementById('tableZoomSlider');
+const tableZoomValue = document.getElementById('tableZoomValue');
+const candidatesTable = document.getElementById('candidatesTable');
+
+// Column Toggle
+const columnToggleBtn = document.getElementById('columnToggleBtn');
+const columnToggleMenu = document.getElementById('columnToggleMenu');
+const candidatesHeaderRow = document.getElementById('candidatesHeaderRow');
+let hiddenColumns = JSON.parse(localStorage.getItem('hiddenColumns')) || [];
+
 // 用户列表
 let users = [];
 let currentNameKeyword = '';
@@ -49,6 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
             uploaderSelect.dispatchEvent(new Event('change'));
         }, 300);
     }
+
+    initColumnToggle();
 });
 
 // 设置事件监听
@@ -106,7 +119,7 @@ function setupEventListeners() {
     // 表单提交
     editForm.addEventListener('submit', handleEditSubmit);
 
-    // 保存选择的上传人
+    // 保存选择的上传人 (上传区域)
     uploaderSelect.addEventListener('change', () => {
         if (uploaderSelect.value) {
             localStorage.setItem('lastUploader', uploaderSelect.value);
@@ -116,6 +129,17 @@ function setupEventListeners() {
             hhInput.style.display = uploaderSelect.value === '猎头' ? 'inline-block' : 'none';
         }
     });
+
+    // 监控编辑模态框里的上传人变化
+    const editUploaderSelect = document.getElementById('editUploader');
+    if (editUploaderSelect) {
+        editUploaderSelect.addEventListener('change', () => {
+            const hhInput = document.getElementById('editUploaderHeadhunterName');
+            if (hhInput) {
+                hhInput.style.display = editUploaderSelect.value === '猎头' ? 'inline-block' : 'none';
+            }
+        });
+    }
 
     // 统计筛选
     if (statsSearchBtn) {
@@ -153,6 +177,85 @@ function setupEventListeners() {
             }
         });
     }
+
+    // Table zoom slider logic
+    if (tableZoomSlider && tableZoomValue && candidatesTable) {
+        tableZoomSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            tableZoomValue.textContent = val + '%';
+            candidatesTable.style.zoom = val / 100;
+        });
+    }
+
+    // Column Toggle Click Outside
+    if (columnToggleBtn && columnToggleMenu) {
+        columnToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            columnToggleMenu.classList.toggle('show');
+        });
+        document.addEventListener('click', (e) => {
+            if (!columnToggleContainer.contains(e.target)) {
+                columnToggleMenu.classList.remove('show');
+            }
+        });
+        columnToggleMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
+}
+const columnToggleContainer = document.querySelector('.column-toggle-container');
+
+function initColumnToggle() {
+    if (!candidatesHeaderRow || !columnToggleMenu) return;
+    const ths = Array.from(candidatesHeaderRow.querySelectorAll('th'));
+    columnToggleMenu.innerHTML = '';
+
+    ths.forEach((th, idx) => {
+        // 不允许隐藏前两列(序号/姓名)和最后一列(操作)
+        if (idx === 0 || idx === 1 || idx === ths.length - 1) return;
+
+        const label = document.createElement('label');
+        label.className = 'column-toggle-label';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !hiddenColumns.includes(idx);
+        checkbox.dataset.colIdx = idx;
+
+        checkbox.addEventListener('change', (e) => {
+            const colIdx = parseInt(e.target.dataset.colIdx, 10);
+            if (e.target.checked) {
+                hiddenColumns = hiddenColumns.filter(c => c !== colIdx);
+            } else {
+                if (!hiddenColumns.includes(colIdx)) hiddenColumns.push(colIdx);
+            }
+            localStorage.setItem('hiddenColumns', JSON.stringify(hiddenColumns));
+            applyColumnVisibility();
+        });
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(th.textContent.trim()));
+        columnToggleMenu.appendChild(label);
+    });
+
+    applyColumnVisibility();
+}
+
+function applyColumnVisibility() {
+    if (!candidatesTable) return;
+    const rows = candidatesTable.querySelectorAll('tr');
+    rows.forEach(row => {
+        const cells = row.children;
+        Array.from(cells).forEach((cell, idx) => {
+            // For cells with colspan (like loading state), don't hide
+            if (cell.colSpan > 1) return;
+            if (hiddenColumns.includes(idx)) {
+                cell.style.display = 'none';
+            } else {
+                cell.style.display = '';
+            }
+        });
+    });
 }
 
 function updateNameSearchCount() {
@@ -325,6 +428,23 @@ async function loadUsers() {
     }
 }
 
+// 填充编辑模态框的上传人下拉框
+function populateEditUploaderSelect() {
+    const editUploaderSelect = document.getElementById('editUploader');
+    if (!editUploaderSelect) return;
+
+    // 保留第一个默认选项
+    editUploaderSelect.innerHTML = '<option value="">选择上传人...</option>';
+
+    // 添加预设用户
+    users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user;
+        option.textContent = user;
+        editUploaderSelect.appendChild(option);
+    });
+}
+
 // 处理文件选择
 function handleFileSelect(e) {
     const file = e.target.files[0];
@@ -435,6 +555,8 @@ async function loadCandidates() {
         `;
         }).join('');
 
+        applyColumnVisibility();
+
         if (nameSearchInput && currentNameKeyword) {
             nameSearchInput.value = currentNameKeyword;
             collectNameMatches(currentNameKeyword);
@@ -539,8 +661,40 @@ async function openEditModal(id) {
         const response = await fetch(`${API_BASE}/candidates/${id}`);
         const candidate = await response.json();
 
+        // 填充上传人下拉列表
+        populateEditUploaderSelect();
+
         document.getElementById('editId').value = candidate.id;
         document.getElementById('editName').value = candidate.name;
+
+        // 设置上传人
+        const editUploaderSelect = document.getElementById('editUploader');
+        const editUploaderHeadhunterName = document.getElementById('editUploaderHeadhunterName');
+        if (editUploaderSelect) {
+            let uploaderValue = candidate.uploader;
+
+            // 针对如果是"猎头-xxx"的情况，将下拉框设为"猎头"，把名字填入输入框
+            if (uploaderValue && uploaderValue.startsWith('猎头-')) {
+                editUploaderSelect.value = '猎头';
+                if (editUploaderHeadhunterName) {
+                    editUploaderHeadhunterName.value = uploaderValue.substring(3);
+                    editUploaderHeadhunterName.style.display = 'inline-block';
+                }
+            } else {
+                if (uploaderValue && !Array.from(editUploaderSelect.options).some(opt => opt.value === uploaderValue)) {
+                    const newOption = document.createElement('option');
+                    newOption.value = uploaderValue;
+                    newOption.textContent = uploaderValue;
+                    editUploaderSelect.appendChild(newOption);
+                }
+                editUploaderSelect.value = uploaderValue || '';
+                if (editUploaderHeadhunterName) {
+                    editUploaderHeadhunterName.value = '';
+                    editUploaderHeadhunterName.style.display = 'none';
+                }
+            }
+        }
+
         document.getElementById('editDirection').value = candidate.direction;
         document.getElementById('editWorkBase').value = candidate.work_base || '';
         document.getElementById('editCanInterview').value = candidate.can_interview || '';
@@ -605,8 +759,20 @@ async function handleEditSubmit(e) {
     e.preventDefault();
 
     const id = document.getElementById('editId').value;
+    const editUploaderSelect = document.getElementById('editUploader');
+    const editUploaderHeadhunterName = document.getElementById('editUploaderHeadhunterName');
+
+    let finalUploader = editUploaderSelect ? editUploaderSelect.value : undefined;
+    if (finalUploader === '猎头' && editUploaderHeadhunterName && editUploaderHeadhunterName.value.trim()) {
+        finalUploader = `猎头-${editUploaderHeadhunterName.value.trim()}`;
+    } else if (finalUploader === '猎头') {
+        showToast('请填写猎头姓名', 'error');
+        return;
+    }
+
     const updateData = {
         name: document.getElementById('editName').value,
+        uploader: finalUploader,
         direction: document.getElementById('editDirection').value,
         work_base: document.getElementById('editWorkBase').value,
         can_interview: document.getElementById('editCanInterview').value,

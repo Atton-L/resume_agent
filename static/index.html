@@ -105,6 +105,17 @@
                             <button class="btn btn-secondary" id="nameClearBtn">清空</button>
                             <span id="nameSearchCount" class="name-search-count">0/0</span>
                         </div>
+                        <div class="table-zoom-control" style="display: flex; align-items: center; gap: 8px;">
+                            <label style="font-size: 0.9rem; color: var(--text-secondary);">表格缩放:</label>
+                            <input type="range" id="tableZoomSlider" min="50" max="150" value="100" title="缩放表格">
+                            <span id="tableZoomValue" style="font-size: 0.9rem; color: var(--text-secondary);">100%</span>
+                        </div>
+                        <div class="column-toggle-container">
+                            <button class="btn btn-secondary" id="columnToggleBtn">⚙️ 列设置</button>
+                            <div class="column-toggle-menu" id="columnToggleMenu">
+                                <!-- 列选项组将由JS动态生成 -->
+                            </div>
+                        </div>
                         <div id="nameSearchPreview" class="name-search-preview" hidden>
                             <div class="name-search-preview-header">
                                 <span>搜索结果预览</span>
@@ -117,24 +128,24 @@
                 <div class="table-container">
                     <table class="candidates-table" id="candidatesTable">
                         <thead>
-                            <tr>
-                                <th>序号</th>
-                                <th>姓名</th>
-                                <th>简历附件</th>
-                                <th>方向</th>
-                                <th>上传日期</th>
-                                <th>上传人</th>
-                                <th>工作base</th>
-                                <th>可约面</th>
-                                <th>约面负责人</th>
-                                <th>初面时间</th>
-                                <th>面试官</th>
-                                <th>初面评价</th>
-                                <th>初面结论</th>
-                                <th>复面时间</th>
-                                <th>复面结论</th>
-                                <th>招聘状态</th>
-                                <th>操作</th>
+                            <tr id="candidatesHeaderRow">
+                                <th data-col="0">序号</th>
+                                <th data-col="1">姓名</th>
+                                <th data-col="2">简历附件</th>
+                                <th data-col="3">方向</th>
+                                <th data-col="4">上传日期</th>
+                                <th data-col="5">上传人</th>
+                                <th data-col="6">工作base</th>
+                                <th data-col="7">可约面</th>
+                                <th data-col="8">约面负责人</th>
+                                <th data-col="9">初面时间</th>
+                                <th data-col="10">面试官</th>
+                                <th data-col="11">初面评价</th>
+                                <th data-col="12">初面结论</th>
+                                <th data-col="13">复面时间</th>
+                                <th data-col="14">复面结论</th>
+                                <th data-col="15">招聘状态</th>
+                                <th data-col="16">操作</th>
                             </tr>
                         </thead>
                         <tbody id="candidatesBody">
@@ -164,6 +175,13 @@
                 <div class="form-group">
                     <label>姓名</label>
                     <input type="text" id="editName" placeholder="应聘者姓名">
+                </div>
+                <div class="form-group">
+                    <label>上传人</label>
+                    <select id="editUploader">
+                        <option value="">选择上传人...</option>
+                    </select>
+                    <input type="text" id="editUploaderHeadhunterName" placeholder="填入猎头姓名" style="display: none; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; margin-top: 5px; width: 100%;">
                 </div>
                 <div class="form-group">
                     <label>方向</label>

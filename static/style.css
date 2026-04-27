@@ -283,11 +283,14 @@ header h1 {
 
 .table-container {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 70vh;
 }
 
 .candidates-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 .candidates-table th {
@@ -297,6 +300,9 @@ header h1 {
     text-align: left;
     font-weight: 500;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .candidates-table td {
@@ -759,4 +765,86 @@ footer {
 
 .candidates-table tbody tr.name-match-row.active-name-match td:first-child {
     border-left-color: #c00000;
+}
+
+/* 冻结列 (首尾) */
+.candidates-table th:first-child,
+.candidates-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background: inherit;
+}
+.candidates-table th:nth-child(2),
+.candidates-table td:nth-child(2) {
+    position: sticky;
+    left: 45px; /* 估计序号列的宽度，视实际情况动态或固定 */
+    z-index: 5;
+    background: inherit;
+    box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1);
+}
+.candidates-table th:first-child,
+.candidates-table th:nth-child(2) {
+    z-index: 15; /* 优先级高于表头普通的 z-index 10 */
+    background: var(--primary-color);
+}
+.candidates-table tbody tr {
+    background: white; /* 确保数据行有背景色以便遮挡下面滑动的列 */
+}
+.candidates-table tbody tr:hover {
+    background: #F9F9F9;
+}
+.candidates-table tbody tr.name-match-row {
+    background-color: #fffbe6;
+}
+.candidates-table tbody tr.name-match-row.active-name-match {
+    background-color: #fff2b3;
+}
+
+.candidates-table th:last-child,
+.candidates-table td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 5;
+    background: inherit;
+    box-shadow: -2px 0 5px -2px rgba(0,0,0,0.1);
+}
+.candidates-table th:last-child {
+    z-index: 15;
+    background: var(--primary-color);
+}
+
+/* 列显隐下拉菜单 */
+.column-toggle-container {
+    position: relative;
+    display: inline-block;
+}
+.column-toggle-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 10px;
+    z-index: 100;
+    min-width: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.column-toggle-menu.show {
+    display: block;
+}
+.column-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.column-toggle-label input {
+    cursor: pointer;
 }
