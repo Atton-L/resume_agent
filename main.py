@@ -184,6 +184,7 @@ async def upload_resume(
             'resume_file': safe_filename,
             'resume_hash': resume_hash,
             'direction': parsed_info['direction'],
+            'job_title': '',
             'upload_date': datetime.now().strftime('%Y-%m-%d'),
             'uploader': uploader
         }
@@ -225,6 +226,7 @@ async def get_candidates():
                 name=c.get('姓名', ''),
                 resume_file=c['简历附件'],
                 direction=c['方向'],
+                job_title=str(c.get('岗位', '') or ''),
                 upload_date=c['简历上传日期'],
                 uploader=c['上传人'],
                 work_base=str(c.get('工作base', '') or ''),
@@ -259,6 +261,7 @@ async def get_candidate(candidate_id: int):
             name=candidate.get('姓名', ''),
             resume_file=candidate['简历附件'],
             direction=candidate['方向'],
+            job_title=str(candidate.get('岗位', '') or ''),
             upload_date=candidate['简历上传日期'],
             uploader=candidate['上传人'],
             work_base=str(candidate.get('工作base', '') or ''),
@@ -291,6 +294,8 @@ async def update_candidate(candidate_id: int, update_data: CandidateUpdate):
             update_dict['姓名'] = update_data.name
         if update_data.direction is not None:
             update_dict['方向'] = update_data.direction
+        if update_data.job_title is not None:
+            update_dict['岗位'] = update_data.job_title
         if update_data.work_base is not None:
             update_dict['工作base'] = update_data.work_base
         if update_data.can_interview is not None:
@@ -325,6 +330,7 @@ async def update_candidate(candidate_id: int, update_data: CandidateUpdate):
             name=result.get('姓名', ''),
             resume_file=result['简历附件'],
             direction=result['方向'],
+            job_title=str(result.get('岗位', '') or ''),
             upload_date=result['简历上传日期'],
             uploader=result['上传人'],
             work_base=result.get('工作base', ''),

@@ -533,6 +533,7 @@ async function loadCandidates() {
                     </div>
                 </td>
                 <td>${getDirectionBadge(c.direction)}</td>
+                <td>${escapeHtml(c.job_title || '-')}</td>
                 <td>${c.upload_date}</td>
                 <td>${escapeHtml(c.uploader)}</td>
                 <td>${escapeHtml(c.work_base || '-')}</td>
@@ -696,6 +697,7 @@ async function openEditModal(id) {
         }
 
         document.getElementById('editDirection').value = candidate.direction;
+        document.getElementById('editJobTitle').value = candidate.job_title || '';
         document.getElementById('editWorkBase').value = candidate.work_base || '';
         document.getElementById('editCanInterview').value = candidate.can_interview || '';
         document.getElementById('editInterviewOwner').value = candidate.interview_owner || '';
@@ -774,6 +776,7 @@ async function handleEditSubmit(e) {
         name: document.getElementById('editName').value,
         uploader: finalUploader,
         direction: document.getElementById('editDirection').value,
+        job_title: document.getElementById('editJobTitle').value,
         work_base: document.getElementById('editWorkBase').value,
         can_interview: document.getElementById('editCanInterview').value,
         interview_owner: document.getElementById('editInterviewOwner').value,

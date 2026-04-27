@@ -19,6 +19,7 @@ COLUMNS = [
     "简历附件",
     "简历哈希",  # 新增字段
     "方向",
+    "岗位",
     "简历上传日期",
     "上传人",
     "工作base",
@@ -104,9 +105,9 @@ def _format_excel():
         'C': 30,
         'D': 12,  # 新增字段宽度
         'E': 10,
-        'F': 12,
-        'G': 10,
-        'H': 12,
+        'F': 10,
+        'G': 12,
+        'H': 10,
         'I': 12,
         'J': 16,
         'K': 10,
@@ -155,6 +156,7 @@ def add_candidate(candidate_data: Dict[str, Any]) -> Dict[str, Any]:
         '简历附件': candidate_data.get('resume_file', ''),
         '简历哈希': candidate_data.get('resume_hash', ''),  # 新增字段
         '方向': candidate_data.get('direction', ''),
+        '岗位': candidate_data.get('job_title', ''),
         '简历上传日期': candidate_data.get('upload_date', datetime.now().strftime('%Y-%m-%d')),
         '上传人': candidate_data.get('uploader', '系统'),
         '工作base': candidate_data.get('work_base', ''),

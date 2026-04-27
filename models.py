@@ -66,6 +66,7 @@ class CandidateBase(BaseModel):
     name: str = Field(..., description="应聘者姓名")
     resume_file: str = Field(..., description="简历文件路径")
     direction: str = Field(default="", description="技术方向：Android/Linux/QNX")
+    job_title: str = Field(default="", description="岗位")
     uploader: str = Field(default="系统", description="上传人")
 
 
@@ -79,6 +80,7 @@ class CandidateUpdate(BaseModel):
     uploader: Optional[str] = None
     name: Optional[str] = None
     direction: Optional[str] = None
+    job_title: Optional[str] = None
     work_base: Optional[str] = None
     can_interview: Optional[str] = None
     interview_owner: Optional[str] = None
@@ -95,6 +97,7 @@ class CandidateResponse(CandidateBase):
     """应聘者响应"""
     id: int = Field(..., description="序号")
     upload_date: str = Field(..., description="上传日期")
+    job_title: str = Field(default="", description="岗位")
     work_base: str = Field(default="", description="工作base")
     can_interview: str = Field(default="", description="是否可以约面")
     interview_owner: str = Field(default="", description="约面负责人")
