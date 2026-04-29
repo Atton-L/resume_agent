@@ -389,6 +389,15 @@ function clearNameSearch() {
     }
 }
 
+// 导出按钮事件
+const exportBtn = document.getElementById('exportBtn');
+if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+        showToast('正在准备导出文件...', 'info');
+        window.location.href = `${API_BASE}/export`;
+    });
+}
+
 // 加载用户列表
 async function loadUsers() {
     try {

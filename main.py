@@ -7,10 +7,12 @@ import sys
 import shutil
 import re
 import hashlib
+import zipfile
+import tempfile
 from typing import List, Optional
 from datetime import datetime, date
 from urllib.parse import quote
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -568,6 +570,50 @@ async def get_statistics(start_date: Optional[str] = None, end_date: Optional[st
 async def get_users():
     """获取预设用户列表"""
     return {"users": USERS}
+
+
+@app.get("/api/export")
+async def export_candidates(background_tasks: BackgroundTasks):
+    """导出所有应聘者数据及附件为ZIP压缩包"""
+    try:
+        if not os.path.exists(excel_manager.EXCEL_FILE):
+            raise HTTPException(status_code=404, detail="暂无数据可导出")
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        zip_filename = f"应聘者数据及附件_{timestamp}.zip"
+        encoded_filename = quote(zip_filename)
+
+        temp_dir = tempfile.mkdtemp()
+        zip_path = os.path.join(temp_dir, zip_filename)
+
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # 添加Excel数据表
+            zipf.write(excel_manager.EXCEL_FILE, "应聘者数据.xlsx")
+
+            # 添加对应的简历附件
+            candidates = excel_manager.get_all_candidates()
+            for c in candidates:
+                resume_name = c.get('简历附件')
+                if resume_name:
+                    resume_path = os.path.join(RESUME_DIR, resume_name)
+                    if os.path.exists(resume_path):
+                        zipf.write(resume_path, f"简历附件/{resume_name}")
+
+        # 设置后台任务清理临时文件
+        def cleanup():
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+        background_tasks.add_task(cleanup)
+
+        return FileResponse(
+            zip_path,
+            media_type='application/zip',
+            headers={'Content-Disposition': f"attachment; filename*=UTF-8''{encoded_filename}"}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/preview/resume/{candidate_id}")
